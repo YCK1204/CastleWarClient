@@ -14,15 +14,17 @@ namespace Network
         private ConcurrentQueue<ArraySegment<byte>> _queue = new ConcurrentQueue<ArraySegment<byte>>();
         private ServerSession _session;
         private Queue<ArraySegment<byte>> _processingQueue = new Queue<ArraySegment<byte>>();
-        
-        public void Connect()
+
+        protected override void Init()
         {
             _connector.Connect(
-                (socket) => _session = new ServerSession(socket),
+                (socket) =>
+                {
+                    _session = new ServerSession(socket);
+                    ProcessPacket();
+                },
                 IPAddress.Loopback,
                 8080);
-
-            ProcessPacket();
         }
 
         public void Send(ArraySegment<byte> data)
@@ -38,7 +40,7 @@ namespace Network
 
         private async Awaitable ProcessPacket()
         {
-            while (true)
+            while (_session.Disconnected == false)
             {
                 while (_processingQueue.Count > 0)
                 {

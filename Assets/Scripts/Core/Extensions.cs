@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using UnityEngine;
+using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace Core
 {
@@ -120,6 +122,118 @@ namespace Core
         public static Vector2 DirectionTo(this Vector2 vector, Vector2 vector2)
         {
             return vector2 - vector;
+        }
+
+        // ──────────────────────────────────────────
+        // Awaitable 유틸
+        // ──────────────────────────────────────────
+
+        /// <summary>지정한 초만큼 대기 (Awaitable, CancellationToken 지원)</summary>
+        public static async Awaitable WaitForSecondsAsync(float seconds, CancellationToken ct = default)
+        {
+            await Awaitable.WaitForSecondsAsync(seconds, ct);
+        }
+
+        /// <summary>다음 프레임까지 대기</summary>
+        public static async Awaitable NextFrameAsync(CancellationToken ct = default)
+        {
+            await Awaitable.NextFrameAsync(ct);
+        }
+
+        /// <summary>지정 프레임 수만큼 대기</summary>
+        public static async Awaitable WaitForFramesAsync(int frames, CancellationToken ct = default)
+        {
+            for (int i = 0; i < frames; i++)
+                await Awaitable.NextFrameAsync(ct);
+        }
+
+        /// <summary>조건이 true가 될 때까지 매 프레임 대기</summary>
+        public static async Awaitable WaitUntilAsync(Func<bool> condition, CancellationToken ct = default)
+        {
+            while (!condition())
+                await Awaitable.NextFrameAsync(ct);
+        }
+
+        /// <summary>조건이 false가 될 때까지 매 프레임 대기</summary>
+        public static async Awaitable WaitWhileAsync(Func<bool> condition, CancellationToken ct = default)
+        {
+            while (condition())
+                await Awaitable.NextFrameAsync(ct);
+        }
+
+        /// <summary>End of Frame까지 대기</summary>
+        public static async Awaitable WaitForEndOfFrameAsync(CancellationToken ct = default)
+        {
+            await Awaitable.EndOfFrameAsync(ct);
+        }
+
+        /// <summary>백그라운드 스레드로 전환 (무거운 연산용)</summary>
+        public static async Awaitable SwitchToBackgroundAsync()
+        {
+            await Awaitable.BackgroundThreadAsync();
+        }
+
+        /// <summary>메인 스레드로 복귀 (Unity API 호출 전 필수)</summary>
+        public static async Awaitable SwitchToMainThreadAsync()
+        {
+            await Awaitable.MainThreadAsync();
+        }
+
+        // ──────────────────────────────────────────
+        // AsyncOperation
+        // ──────────────────────────────────────────
+
+        /// <summary>
+        /// AsyncOperation을 Awaitable로 변환, progress 콜백 지원
+        /// activationThreshold: 이 값에 도달하면 완료로 간주 (씬 로드는 0.9f)
+        /// </summary>
+        public static async Awaitable ToAwaitable(
+            this AsyncOperation op,
+            Action<float> onProgress = null,
+            float activationThreshold = 1f,
+            CancellationToken ct = default)
+        {
+            while (op.progress < activationThreshold)
+            {
+                ct.ThrowIfCancellationRequested();
+                onProgress?.Invoke(Mathf.Clamp01(op.progress / activationThreshold));
+                await Awaitable.NextFrameAsync(ct);
+            }
+            onProgress?.Invoke(1f);
+        }
+
+        /// <summary>
+        /// AsyncOperationHandle을 Awaitable로 변환 (Addressables용)
+        /// </summary>
+        public static async Awaitable ToAwaitable(
+            this AsyncOperationHandle handle,
+            Action<float> onProgress = null,
+            CancellationToken ct = default)
+        {
+            while (!handle.IsDone)
+            {
+                ct.ThrowIfCancellationRequested();
+                onProgress?.Invoke(handle.PercentComplete);
+                await Awaitable.NextFrameAsync(ct);
+            }
+            onProgress?.Invoke(1f);
+        }
+
+        /// <summary>
+        /// AsyncOperationHandle&lt;T&gt;을 Awaitable로 변환 (Addressables 제네릭 핸들용)
+        /// </summary>
+        public static async Awaitable ToAwaitable<T>(
+            this AsyncOperationHandle<T> handle,
+            Action<float> onProgress = null,
+            CancellationToken ct = default)
+        {
+            while (!handle.IsDone)
+            {
+                ct.ThrowIfCancellationRequested();
+                onProgress?.Invoke(handle.PercentComplete);
+                await Awaitable.NextFrameAsync(ct);
+            }
+            onProgress?.Invoke(1f);
         }
     }
 }

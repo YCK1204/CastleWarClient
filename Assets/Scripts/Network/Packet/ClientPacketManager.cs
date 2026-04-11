@@ -12,7 +12,7 @@ public class PacketManager : Singleton<PacketManager>
     private Dictionary<ushort, Action<ServerSession, byte[]>> _packetHandlers =
         new Dictionary<ushort, Action<ServerSession, byte[]>>();
 
-    private readonly ushort PacketHeaderSize = 5;
+    private const ushort PacketHeaderSize = PacketConstants.HeaderSize;
     private const int CompressionThreshold = 512;
     private const byte FlagCompressed = 0x01;
 

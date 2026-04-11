@@ -19,10 +19,10 @@ public abstract class Session
     private int _sending = 0;
     public bool Disconnected => Volatile.Read(ref _disconnected) == 1;
 
-     protected abstract void OnConnected(EndPoint endpoint);
-     protected abstract void OnDisConnected(EndPoint endpoint);
-     protected abstract int OnRecv(ArraySegment<byte> data);
-     protected abstract void OnSend(int numOfBytes);
+    protected abstract void OnConnected(EndPoint endpoint);
+    protected abstract void OnDisConnected(EndPoint endpoint);
+    protected abstract int OnRecv(ArraySegment<byte> data);
+    protected abstract void OnSend(int numOfBytes);
 
     public Session(Socket socket)
     {
@@ -170,9 +170,10 @@ public abstract class Session
     {
         if (Interlocked.CompareExchange(ref _disconnected, 1, 0) == 1)
             return;
-        OnDisConnected(_socket.RemoteEndPoint);
-        _socket.Shutdown(SocketShutdown.Both);
+        var remoteEndPoint = _socket.RemoteEndPoint;
+        try { _socket.Shutdown(SocketShutdown.Both); } catch { }
         _socket.Close();
+        OnDisConnected(remoteEndPoint);
     }
 }
 
@@ -180,11 +181,11 @@ public abstract class PacketSession : Session
 {
     #region 통신
 
-    private static readonly ushort HeaderSize = 5;
+    private const ushort HeaderSize = Network.PacketConstants.HeaderSize;
 
     protected PacketSession(Socket socket) : base(socket)
     {
-        IsAesInit = false;
+        _isAesInit = false;
     }
 
     protected abstract void OnRecvPacket(ArraySegment<byte> data);
@@ -208,20 +209,22 @@ public abstract class PacketSession : Session
 
     #endregion
 
-    public bool IsAesInit = false;
+    private volatile bool _isAesInit = false;
     private Aes _aes;
-    public Aes Aes => !IsAesInit ? null : _aes;
+    public bool IsAesInit => _isAesInit;
+    public Aes Aes => _isAesInit ? _aes : null;
 
     public void SetAes(byte[] iv, byte[] key)
     {
         try
         {
-            _aes = Aes.Create();
-            _aes.Mode = CipherMode.CBC;
-            _aes.Padding = PaddingMode.PKCS7;
-            _aes.IV = iv;
-            _aes.Key = key;
-            IsAesInit = true;
+            var aes = Aes.Create();
+            aes.Mode = CipherMode.CBC;
+            aes.Padding = PaddingMode.PKCS7;
+            aes.IV = iv;
+            aes.Key = key;
+            _aes = aes;         // _aes 완전 초기화 후
+            _isAesInit = true;  // volatile 플래그 설정 (순서 보장)
         }
         catch (Exception ex)
         {
