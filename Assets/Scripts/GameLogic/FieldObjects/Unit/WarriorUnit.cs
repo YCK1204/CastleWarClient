@@ -2,7 +2,7 @@ using GameLogic.Interfaces;
 
 namespace GameLogic.Unit
 {
-    public class TestUnit : BaseUnitController, IAttackable
+    public class WarriorUnit : BaseUnitController, IAttackable
     {
         public override float Speed { get; set; }
 
@@ -13,6 +13,7 @@ namespace GameLogic.Unit
 
         public override void Move()
         {
+            // PathId + Progress 기반 이동 처리 (MapManager에서 경로 좌표 조회)
         }
 
         public void Attack(GameLogic.FieldObjects.FieldObject target)

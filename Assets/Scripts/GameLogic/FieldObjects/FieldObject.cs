@@ -6,6 +6,9 @@ namespace GameLogic.FieldObjects
 {
     public abstract class FieldObject : MonoBehaviour, IDamageable, IDieable
     {
+        /// <summary>서버에서 할당한 식별 id</summary>
+        public ushort NetworkId { get; set; }
+
         public Player.Player Owner { get; set; }
         private float _hp;
 

@@ -39,9 +39,14 @@ namespace GameLogic.FieldObjects
         }
         #endregion
 
+        public bool IsActive { get; set; }
+        public float CurrentCost { get; set; }
+        public float MaxCost { get; set; }
+        public int Level { get; set; }
+
         public override void TakeDamage(float damage)
         {
-            
+            Hp -= damage;
         }
     }
 }
