@@ -4,13 +4,15 @@ using CWFramework;
 public class SecurityManager : Singleton<SecurityManager>
 {
     private static readonly RSA _rsa = RSA.Create(2048);
-    private static RSA _serverRsa = RSA.Create();
+    private static RSA _serverRsa;
 
     #region RSA
     public byte[] RsaPublicKey => _rsa.ExportRSAPublicKey();
 
     public void SetServerPublicKey(byte[] pubKeyBytes)
     {
+        _serverRsa?.Dispose();
+        _serverRsa = RSA.Create();
         _serverRsa.ImportRSAPublicKey(pubKeyBytes, out _);
     }
 
@@ -37,8 +39,20 @@ public class SecurityManager : Singleton<SecurityManager>
         {
             return null;
         }
-        var encryptor = session.Aes.CreateEncryptor();
-        return encryptor.TransformFinalBlock(data, 0, data.Length);
+
+        using var aes = Aes.Create();
+        aes.Key = session.AesKey;
+        aes.GenerateIV();
+        aes.Mode = CipherMode.CBC;
+        aes.Padding = PaddingMode.PKCS7;
+
+        using var encryptor = aes.CreateEncryptor();
+        byte[] encrypted = encryptor.TransformFinalBlock(data, 0, data.Length);
+
+        byte[] result = new byte[aes.IV.Length + encrypted.Length];
+        Buffer.BlockCopy(aes.IV, 0, result, 0, aes.IV.Length);
+        Buffer.BlockCopy(encrypted, 0, result, aes.IV.Length, encrypted.Length);
+        return result;
     }
 
     public byte[]? AesDecrypt(byte[] data, PacketSession session)
@@ -47,8 +61,18 @@ public class SecurityManager : Singleton<SecurityManager>
         {
             return null;
         }
-        var decryptor = session.Aes.CreateDecryptor();
-        return decryptor.TransformFinalBlock(data, 0, data.Length);
+
+        using var aes = Aes.Create();
+        aes.Key = session.AesKey;
+        aes.Mode = CipherMode.CBC;
+        aes.Padding = PaddingMode.PKCS7;
+
+        byte[] iv = new byte[16];
+        Buffer.BlockCopy(data, 0, iv, 0, 16);
+        aes.IV = iv;
+
+        using var decryptor = aes.CreateDecryptor();
+        return decryptor.TransformFinalBlock(data, 16, data.Length - 16);
     }
     #endregion
 

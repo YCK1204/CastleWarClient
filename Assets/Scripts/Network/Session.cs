@@ -210,24 +210,20 @@ public abstract class PacketSession : Session
     #endregion
 
     private volatile bool _isAesInit = false;
-    private Aes _aes;
+    private byte[] _aesKey;
     public bool IsAesInit => _isAesInit;
-    public Aes Aes => _isAesInit ? _aes : null;
+    public byte[] AesKey => _isAesInit ? _aesKey : null;
 
     public void SetAes(byte[] iv, byte[] key)
     {
         try
         {
-            var aes = Aes.Create();
-            aes.Mode = CipherMode.CBC;
-            aes.Padding = PaddingMode.PKCS7;
-            aes.IV = iv;
-            aes.Key = key;
-            _aes = aes;         // _aes 완전 초기화 후
-            _isAesInit = true;  // volatile 플래그 설정 (순서 보장)
+            _aesKey = key;
+            _isAesInit = true;
         }
         catch (Exception ex)
         {
+            UnityEngine.Debug.LogError($"[세션] AES 키 설정 실패 - {ex.Message}");
         }
     }
 }
