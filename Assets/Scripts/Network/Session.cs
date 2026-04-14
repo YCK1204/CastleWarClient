@@ -62,6 +62,12 @@ public abstract class Session
         {
             if (e.SocketError == SocketError.Success)
             {
+                if (e.BytesTransferred == 0)
+                {
+                    Disconnect();
+                    return;
+                }
+
                 if (_recvBuffer.OnWrite(e.BytesTransferred) == false)
                 {
                     Disconnect();
@@ -118,6 +124,7 @@ public abstract class Session
         if (Interlocked.CompareExchange(ref _sending, 1, 0) != 0)
             return;
 
+        e.BufferList = null;
         _sendList.Clear();
         while (_sendQueue.TryDequeue(out var data))
         {
@@ -173,6 +180,8 @@ public abstract class Session
         var remoteEndPoint = _socket.RemoteEndPoint;
         try { _socket.Shutdown(SocketShutdown.Both); } catch { }
         _socket.Close();
+        _recvArgs.Dispose();
+        _sendArgs.Dispose();
         OnDisConnected(remoteEndPoint);
     }
 }

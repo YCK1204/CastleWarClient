@@ -40,7 +40,7 @@ namespace Network
 
         private async Awaitable ProcessPacket()
         {
-            while (_session.Disconnected == false)
+            while (_session != null && _session.Disconnected == false)
             {
                 while (_processingQueue.Count > 0)
                 {
