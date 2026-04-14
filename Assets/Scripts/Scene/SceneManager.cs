@@ -4,6 +4,7 @@ using System.Threading;
 using Core;
 using CWFramework;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using Utils.ResourceManager;
 
@@ -11,6 +12,7 @@ namespace Scene
 {
     public class SceneManagerEx : Singleton<SceneManagerEx>
     {
+        public EventSystem EventSystem { get; internal set; }
         private BaseScene _currentScene = null;
         private bool _isLoading = false;
 

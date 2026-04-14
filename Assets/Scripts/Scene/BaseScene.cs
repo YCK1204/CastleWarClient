@@ -23,15 +23,16 @@ namespace Scene
             }
         }
 
-        protected virtual void Init()
-        {
-        }
+        protected virtual void Init(){}
 
-        private async void Awake()
+        protected virtual async void Awake()
         {
             Init();
             SceneManagerEx.Instance.RegisterScene(this);
             await ResourceManager.Instance.PreloadSceneAsync(_sceneType.ToString(), destroyCancellationToken);
+            OnAssetLoaded();
         }
+        
+        protected virtual void OnAssetLoaded(){}
     }
 }
