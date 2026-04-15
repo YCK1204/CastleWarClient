@@ -14,6 +14,7 @@ namespace Network
         public override void OnConnected(EndPoint endpoint)
         {
             Debug.Log("OnConnected");
+            StartReceive();
         }
 
         protected override void OnDisConnected(EndPoint endpoint)
