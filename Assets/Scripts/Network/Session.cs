@@ -19,7 +19,7 @@ public abstract class Session
     private int _sending = 0;
     public bool Disconnected => Volatile.Read(ref _disconnected) == 1;
 
-    protected abstract void OnConnected(EndPoint endpoint);
+    public abstract void OnConnected(EndPoint endpoint);
     protected abstract void OnDisConnected(EndPoint endpoint);
     protected abstract int OnRecv(ArraySegment<byte> data);
     protected abstract void OnSend(int numOfBytes);

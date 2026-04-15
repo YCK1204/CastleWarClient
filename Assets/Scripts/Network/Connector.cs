@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using Network;
 
 public class Connector
 {
     private Socket _socket;
-    private Action<Socket> _sessionFactory;
+    private Func<Socket, ServerSession> _sessionFactory;
 
-    public void Connect(Action<Socket> sessionFactory, IPAddress addr, int port)
+    public void Connect(Func<Socket, ServerSession> sessionFactory, IPAddress addr, int port)
     {
         _sessionFactory = sessionFactory;
         IPEndPoint endPoint = new(addr, port);
@@ -34,8 +35,8 @@ public class Connector
     {
         if (e.SocketError == SocketError.Success)
         {
-            _sessionFactory.Invoke(e.ConnectSocket);
-            Console.WriteLine("Connected");
+            var session = _sessionFactory.Invoke(e.ConnectSocket);
+            session.OnConnected(e.RemoteEndPoint);
         }
         else
         {

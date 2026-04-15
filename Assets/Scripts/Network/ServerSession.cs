@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using UnityEngine;
 
 namespace Network
 {
@@ -10,12 +11,14 @@ namespace Network
         {
         }
 
-        protected override void OnConnected(EndPoint endpoint)
+        public override void OnConnected(EndPoint endpoint)
         {
+            Debug.Log("OnConnected");
         }
 
         protected override void OnDisConnected(EndPoint endpoint)
         {
+            Debug.Log("OnDisConnected");
         }
 
         protected override void OnSend(int numOfBytes)

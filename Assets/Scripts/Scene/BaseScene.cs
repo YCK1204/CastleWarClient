@@ -6,7 +6,7 @@ namespace Scene
 {
     public enum SceneType
     {
-        Test
+        TestScene
     }
 
     public class BaseScene : MonoBehaviour

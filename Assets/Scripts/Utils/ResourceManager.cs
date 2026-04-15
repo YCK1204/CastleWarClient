@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Threading;
 using Core;
 using CWFramework;
+using Scene;
+using Utils;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -14,14 +16,39 @@ namespace Utils.ResourceManager
 {
     public class ResourceManager : Singleton<ResourceManager>
     {
-        // 로드 완료된 핸들 캐시
-        private readonly Dictionary<string, AsyncOperationHandle> _handleCache = new();
+        private string CurrentScene => SceneManagerEx.Instance.CurrentSceneName;
 
-        // 로드 중인 키 → 대기 콜백 목록 (중복 요청 dedup)
-        private readonly Dictionary<string, List<Action<object>>> _pendingCallbacks = new();
+        // T1=씬이름, T2=에셋키(Addressable address), T3=핸들
+        private readonly DoubleDictionary<string, string, AsyncOperationHandle> _handleCache = new();
 
-        // 씬별 키 목록 (씬 언로드 시 일괄 해제용)
-        private readonly Dictionary<string, HashSet<string>> _sceneHandles = new();
+        // 로딩 중 dedup: T1=씬이름, T2=에셋키
+        private readonly Dictionary<string, Dictionary<string, List<Action<object>>>> _pendingCallbacks = new();
+
+        // ──────────────────────────────────────────
+        // Get — 프리로드된 에셋 조회
+        // ──────────────────────────────────────────
+
+        /// <summary>
+        /// PreloadSceneAsync로 미리 로드된 에셋을 이름으로 즉시 반환.
+        /// 캐시에 없으면 null 반환.
+        /// </summary>
+        public T Get<T>(string key) where T : UnityEngine.Object
+        {
+            if (!_handleCache.TryGetValue(CurrentScene, key, out var handle))
+            {
+                Debug.LogWarning($"[ResourceManager] Get: '{key}' 캐시 없음. PreloadSceneAsync 먼저 호출 필요");
+                return null;
+            }
+
+            // T가 에셋 타입 자체인 경우 (GameObject, Texture, AudioClip 등)
+            if (handle.Result is T result) return result;
+
+            // T가 컴포넌트인 경우 프리팹에서 GetComponent
+            if (handle.Result is GameObject go)
+                return go.GetComponent(typeof(T)) as T;
+
+            return null;
+        }
 
         // ──────────────────────────────────────────
         // Load — 콜백
@@ -31,81 +58,37 @@ namespace Utils.ResourceManager
         /// 단일 에셋 비동기 로드 (콜백).
         /// 같은 키 중복 요청 시 핸들을 하나만 생성하고 콜백을 모두 보장함.
         /// </summary>
-        public void LoadAsync<T>(string key, Action<T> callback, string scene = null) where T : UnityEngine.Object
+        public void LoadAsync<T>(string key, Action<T> callback) where T : UnityEngine.Object
         {
-            if (_handleCache.TryGetValue(key, out var cached))
+            var scene = CurrentScene;
+
+            if (_handleCache.TryGetValue(scene, key, out var cached))
             {
-                RegisterSceneHandle(scene, key);
-                callback?.Invoke(cached.Convert<T>().Result);
+                callback?.Invoke(cached.Result as T);
                 return;
             }
 
-            if (_pendingCallbacks.ContainsKey(key))
+            if (IsPending(scene, key))
             {
-                _pendingCallbacks[key].Add(obj => callback?.Invoke(obj as T));
+                AddPendingCallback(scene, key, obj => callback?.Invoke(obj as T));
                 return;
             }
 
-            _pendingCallbacks[key] = new List<Action<object>> { obj => callback?.Invoke(obj as T) };
+            SetPending(scene, key, new List<Action<object>> { obj => callback?.Invoke(obj as T) });
 
             var handle = Addressables.LoadAssetAsync<T>(key);
             handle.Completed += h =>
             {
-                var pending = _pendingCallbacks[key];
-                _pendingCallbacks.Remove(key);
+                var pending = ConsumePending(scene, key);
 
                 if (h.Status == AsyncOperationStatus.Succeeded)
                 {
-                    _handleCache[key] = h;
-                    RegisterSceneHandle(scene, key);
-                    foreach (var cb in pending)
-                        cb?.Invoke(h.Result);
+                    _handleCache.Set(scene, key, h);
+                    foreach (var cb in pending) cb?.Invoke(h.Result);
                 }
                 else
                 {
-                    Debug.LogError($"[ResourceManager] LoadAsync Failed : {key}");
-                    h.Release();
-                }
-            };
-        }
-
-        /// <summary>
-        /// 태그 기반 다중 에셋 비동기 로드 (콜백).
-        /// 같은 태그 중복 요청 시 핸들을 하나만 생성하고 콜백을 모두 보장함.
-        /// </summary>
-        public void LoadAsyncByTag<T>(string tagKey, Action<IList<T>> callback, string scene = null) where T : UnityEngine.Object
-        {
-            if (_handleCache.TryGetValue(tagKey, out var cached))
-            {
-                RegisterSceneHandle(scene, tagKey);
-                callback?.Invoke(cached.Convert<IList<T>>().Result);
-                return;
-            }
-
-            if (_pendingCallbacks.ContainsKey(tagKey))
-            {
-                _pendingCallbacks[tagKey].Add(obj => callback?.Invoke(obj as IList<T>));
-                return;
-            }
-
-            _pendingCallbacks[tagKey] = new List<Action<object>> { obj => callback?.Invoke(obj as IList<T>) };
-
-            var handle = Addressables.LoadAssetsAsync<T>(tagKey, null);
-            handle.Completed += h =>
-            {
-                var pending = _pendingCallbacks[tagKey];
-                _pendingCallbacks.Remove(tagKey);
-
-                if (h.Status == AsyncOperationStatus.Succeeded)
-                {
-                    _handleCache[tagKey] = h;
-                    RegisterSceneHandle(scene, tagKey);
-                    foreach (var cb in pending)
-                        cb?.Invoke(h.Result);
-                }
-                else
-                {
-                    Debug.LogError($"[ResourceManager] LoadAsyncByTag Failed : {tagKey}");
+                    Debug.LogError($"[ResourceManager] LoadAsync Failed: {key}");
                     h.Release();
                 }
             };
@@ -118,55 +101,46 @@ namespace Utils.ResourceManager
         /// <summary>
         /// 단일 에셋 비동기 로드 (Awaitable).
         /// 로드 중인 키 요청 시 완료까지 대기 후 반환.
-        /// 취소 또는 실패 시 null 반환, 핸들 누수 없음.
+        /// 취소 또는 실패 시 null 반환.
         /// </summary>
-        public async Awaitable<T> LoadAsync<T>(string key, string scene = null, CancellationToken ct = default) where T : UnityEngine.Object
+        public async Awaitable<T> LoadAsync<T>(string key, CancellationToken ct = default) where T : UnityEngine.Object
         {
-            if (_handleCache.TryGetValue(key, out var cached))
-            {
-                RegisterSceneHandle(scene, key);
-                return cached.Convert<T>().Result;
-            }
+            var scene = CurrentScene;
 
-            // 이미 로딩 중이면 완료까지 대기
-            if (_pendingCallbacks.ContainsKey(key))
+            if (_handleCache.TryGetValue(scene, key, out var cached))
+                return cached.Result as T;
+
+            if (IsPending(scene, key))
             {
-                while (_pendingCallbacks.ContainsKey(key))
+                while (IsPending(scene, key))
                     await Awaitable.NextFrameAsync(ct);
 
-                if (_handleCache.TryGetValue(key, out var done))
-                {
-                    RegisterSceneHandle(scene, key);
-                    return done.Convert<T>().Result;
-                }
-                return null;
+                return _handleCache.TryGetValue(scene, key, out var done)
+                    ? done.Result as T
+                    : null;
             }
 
-            _pendingCallbacks[key] = new List<Action<object>>();
+            SetPending(scene, key, new List<Action<object>>());
+
             var handle = Addressables.LoadAssetAsync<T>(key);
-
-            try
-            {
-                await handle.ToAwaitable(ct: ct);
-            }
+            try { await handle.ToAwaitable(ct: ct); }
             catch
             {
-                _pendingCallbacks.Remove(key);
+                ConsumePending(scene, key);
                 handle.Release();
                 throw;
             }
 
-            _pendingCallbacks.Remove(key);
+            ConsumePending(scene, key);
 
             if (handle.Status != AsyncOperationStatus.Succeeded)
             {
-                Debug.LogError($"[ResourceManager] LoadAsync Failed : {key}");
+                Debug.LogError($"[ResourceManager] LoadAsync Failed: {key}");
                 handle.Release();
                 return null;
             }
 
-            _handleCache[key] = handle;
-            RegisterSceneHandle(scene, key);
+            _handleCache.Set(scene, key, handle);
             return handle.Result;
         }
 
@@ -177,26 +151,24 @@ namespace Utils.ResourceManager
         /// <summary>
         /// 단일 에셋 동기 로드. 메인 스레드 블로킹 주의, 소형 에셋에만 사용.
         /// </summary>
-        public T Load<T>(string key, string scene = null) where T : UnityEngine.Object
+        public T Load<T>(string key) where T : UnityEngine.Object
         {
-            if (_handleCache.TryGetValue(key, out var cached))
-            {
-                RegisterSceneHandle(scene, key);
-                return cached.Convert<T>().Result;
-            }
+            var scene = CurrentScene;
+
+            if (_handleCache.TryGetValue(scene, key, out var cached))
+                return cached.Result as T;
 
             var handle = Addressables.LoadAssetAsync<T>(key);
             handle.WaitForCompletion();
 
             if (handle.Status != AsyncOperationStatus.Succeeded)
             {
-                Debug.LogError($"[ResourceManager] Load Failed : {key}");
+                Debug.LogError($"[ResourceManager] Load Failed: {key}");
                 handle.Release();
                 return null;
             }
 
-            _handleCache[key] = handle;
-            RegisterSceneHandle(scene, key);
+            _handleCache.Set(scene, key, handle);
             return handle.Result;
         }
 
@@ -206,104 +178,112 @@ namespace Utils.ResourceManager
 
         /// <summary>
         /// 씬 이름(= Addressables 라벨)으로 씬 에셋 전부 프리로드.
-        /// 이미 로드됐거나 로드 중이면 대기 후 반환.
-        /// 실패 시 로그만 남기고 정상 종료 (게임은 계속 진행).
+        /// 각 에셋을 개별 핸들로 _handleCache[scene][address]에 저장.
+        /// 완료 후 Get<T>(key)로 즉시 접근 가능.
         /// </summary>
         public async Awaitable PreloadSceneAsync(string scene, CancellationToken ct = default)
         {
-            // 이미 캐시됨
             if (_handleCache.ContainsKey(scene)) return;
 
-            // 로딩 중이면 완료까지 대기
-            if (_pendingCallbacks.ContainsKey(scene))
+            // 씬 라벨의 모든 리소스 위치 조회
+            var locHandle = Addressables.LoadResourceLocationsAsync(scene, typeof(UnityEngine.Object));
+            await locHandle.ToAwaitable(ct: ct);
+
+            if (locHandle.Status != AsyncOperationStatus.Succeeded || locHandle.Result.Count == 0)
             {
-                while (_pendingCallbacks.ContainsKey(scene))
-                    await Awaitable.NextFrameAsync(ct);
+                Debug.LogWarning($"[ResourceManager] PreloadSceneAsync: '{scene}' 라벨 에셋 없음. 건너뜀.");
+                Addressables.Release(locHandle);
                 return;
             }
 
-            _pendingCallbacks[scene] = new List<Action<object>>();
-            var handle = Addressables.LoadAssetsAsync<UnityEngine.Object>(scene, null);
+            // 모든 에셋 로드 동시 시작
+            var pendingLoads = new List<(string key, AsyncOperationHandle<UnityEngine.Object> handle)>(locHandle.Result.Count);
+            foreach (var loc in locHandle.Result)
+                pendingLoads.Add((loc.PrimaryKey, Addressables.LoadAssetAsync<UnityEngine.Object>(loc)));
 
-            try
+            Addressables.Release(locHandle);
+
+            // 완료 대기 및 개별 핸들 캐싱
+            foreach (var (key, assetHandle) in pendingLoads)
             {
-                await handle.ToAwaitable(ct: ct);
-            }
-            catch
-            {
-                _pendingCallbacks.Remove(scene);
-                handle.Release();
-                throw;
-            }
+                try { await assetHandle.ToAwaitable(ct: ct); }
+                catch
+                {
+                    assetHandle.Release();
+                    throw;
+                }
 
-            _pendingCallbacks.Remove(scene);
-
-            if (handle.Status != AsyncOperationStatus.Succeeded)
-            {
-                Debug.LogWarning($"[ResourceManager] PreloadSceneAsync: '{scene}' 라벨 에셋 없음 또는 실패. 건너뜀.");
-                handle.Release();
-                return;
+                if (assetHandle.Status == AsyncOperationStatus.Succeeded)
+                    _handleCache.Set(scene, key, assetHandle);
+                else
+                {
+                    Debug.LogError($"[ResourceManager] PreloadSceneAsync: '{key}' 로드 실패");
+                    assetHandle.Release();
+                }
             }
-
-            _handleCache[scene] = handle;
-            if (!_sceneHandles.ContainsKey(scene))
-                _sceneHandles[scene] = new HashSet<string>();
-            _sceneHandles[scene].Add(scene);
         }
 
         // ──────────────────────────────────────────
         // Unload
         // ──────────────────────────────────────────
 
-        /// <summary>특정 키 에셋 해제.</summary>
+        /// <summary>현재 씬의 특정 키 에셋 해제.</summary>
         public void Unload(string key)
         {
-            if (_handleCache.TryGetValue(key, out var handle))
+            var scene = CurrentScene;
+            if (_handleCache.TryGetValue(scene, key, out var handle))
             {
                 handle.Release();
-                _handleCache.Remove(key);
+                _handleCache.Remove(scene, key);
             }
-
-            foreach (var keys in _sceneHandles.Values)
-                keys.Remove(key);
         }
 
         /// <summary>씬에 등록된 에셋 전부 해제.</summary>
         public void UnloadScene(string scene)
         {
-            if (!_sceneHandles.TryGetValue(scene, out var keys)) return;
+            if (!_handleCache.TryGetInner(scene, out var sceneDict)) return;
 
-            foreach (var key in keys)
-            {
-                if (_handleCache.TryGetValue(key, out var handle))
-                {
-                    handle.Release();
-                    _handleCache.Remove(key);
-                }
-            }
+            foreach (var handle in sceneDict.Values)
+                handle.Release();
 
-            _sceneHandles.Remove(scene);
+            _handleCache.Remove(scene);
         }
 
         /// <summary>전체 에셋 해제 (앱 종료 시).</summary>
         public void UnloadAll()
         {
-            foreach (var handle in _handleCache.Values)
-                handle.Release();
-            _handleCache.Clear();
-            _sceneHandles.Clear();
+            foreach (var inner in _handleCache.InnerValues())
+                foreach (var handle in inner.Values)
+                    handle.Release();
+
+            // 새 인스턴스로 교체
+            foreach (var inner in _handleCache.InnerValues())
+                inner.Clear();
         }
 
         // ──────────────────────────────────────────
-        // Internal
+        // Internal — pending 관리
         // ──────────────────────────────────────────
 
-        private void RegisterSceneHandle(string scene, string key)
+        private bool IsPending(string scene, string key) =>
+            _pendingCallbacks.TryGetValue(scene, out var inner) && inner.ContainsKey(key);
+
+        private void AddPendingCallback(string scene, string key, Action<object> cb) =>
+            _pendingCallbacks[scene][key].Add(cb);
+
+        private void SetPending(string scene, string key, List<Action<object>> callbacks)
         {
-            if (scene == null) return;
-            if (!_sceneHandles.ContainsKey(scene))
-                _sceneHandles[scene] = new HashSet<string>();
-            _sceneHandles[scene].Add(key);
+            if (!_pendingCallbacks.ContainsKey(scene))
+                _pendingCallbacks[scene] = new Dictionary<string, List<Action<object>>>();
+            _pendingCallbacks[scene][key] = callbacks;
+        }
+
+        private List<Action<object>> ConsumePending(string scene, string key)
+        {
+            if (!_pendingCallbacks.TryGetValue(scene, out var inner)) return new List<Action<object>>();
+            var list = inner.TryGetValue(key, out var callbacks) ? callbacks : new List<Action<object>>();
+            inner.Remove(key);
+            return list;
         }
 
 #if UNITY_EDITOR

@@ -21,6 +21,7 @@ namespace Scene
 
         /// <summary>현재 활성 씬.</summary>
         public BaseScene CurrentScene => _currentScene;
+        public string CurrentSceneName = null;
 
         /// <summary>씬 로드 중 여부. 중복 요청 방지 및 로딩 UI 표시에 활용.</summary>
         public bool IsLoading => _isLoading;
@@ -29,7 +30,11 @@ namespace Scene
         /// BaseScene.Awake에서 호출 — 현재 씬 등록.
         /// 씬 전환 완료 후 새 BaseScene이 자신을 등록함.
         /// </summary>
-        public void RegisterScene(BaseScene scene) => _currentScene = scene;
+        public void RegisterScene(BaseScene scene)
+        {
+            _currentScene = scene;
+            CurrentSceneName = _currentScene.SceneType.ToString();
+        }
         // ──────────────────────────────────────────
         // Single 씬 로드
         // ──────────────────────────────────────────

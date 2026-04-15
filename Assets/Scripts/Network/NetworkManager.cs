@@ -22,6 +22,7 @@ namespace Network
                 {
                     _session = new ServerSession(socket);
                     ProcessPacket();
+                    return _session;
                 },
                 IPAddress.Loopback,
                 8080);

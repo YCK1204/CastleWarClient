@@ -9,13 +9,16 @@ namespace Scene
     {
         protected override void Init()
         {
-            SceneType = SceneType.Test;
+            SceneType = SceneType.TestScene;
         }
 
         // EventSystem, NetworkManager 생성 및 초기화
         protected override void OnAssetLoaded()
         {
-            EventSystem esPrefab = ResourceManager.Instance.Load<EventSystem>("@EventSystem");
+            if (SceneManagerEx.Instance.EventSystem != null)
+                return;
+            
+            EventSystem esPrefab = ResourceManager.Instance.Get<EventSystem>("@EventSystem");
             if (esPrefab == null)
             {
                 Debug.LogError("@EventSystem not set");
@@ -24,11 +27,12 @@ namespace Scene
             
             EventSystem eventSystem = Instantiate(esPrefab);
             SceneManagerEx.Instance.EventSystem = eventSystem;
+            DontDestroyOnLoad(eventSystem.gameObject);
 
             if (NetworkManager.Instance != null)
                 return;
             
-            NetworkManager networkManagerPrefab = ResourceManager.Instance.Load<NetworkManager>("@NetworkManager");
+            NetworkManager networkManagerPrefab = ResourceManager.Instance.Get<NetworkManager>("@NetworkManager");
             if (networkManagerPrefab == null)
             {
                 Debug.LogError("@NetworkManager not set");
