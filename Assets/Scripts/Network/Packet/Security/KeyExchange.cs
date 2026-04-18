@@ -18,15 +18,14 @@ public partial class PacketHandler
         var parts = combined.Split('|');
         if (parts.Length != 2) return;
 
-        string hash = parts[0];
-        string base64 = parts[1];
+        string hash     = parts[0];
+        string keyParams = parts[1]; // "base64(Modulus).base64(Exponent)"
 
         // 2. 해시 검증
-        if (base64.ToHash() != hash) return;
+        if (keyParams.ToHash() != hash) return;
 
-        // 3. base64 → RSA 공개키 바이트 → SecurityManager에 설정
-        byte[] pubKeyBytes = Convert.FromBase64String(base64);
-        SecurityManager.Instance.SetServerPublicKey(pubKeyBytes);
+        // 3. RSAParameters 방식으로 서버 공개키 설정 (ImportRSAPublicKey 대신)
+        SecurityManager.Instance.SetServerPublicKey(keyParams);
 
         // 4. AES Key + IV 생성
         using var aes = Aes.Create();

@@ -10,16 +10,27 @@ public class SecurityManager : Singleton<SecurityManager>
     #region RSA
     public byte[] RsaPublicKey => _rsa.ExportRSAPublicKey();
 
-    public void SetServerPublicKey(byte[] pubKeyBytes)
+    // keyParams: "base64(Modulus).base64(Exponent)" 형식
+    public void SetServerPublicKey(string keyParams)
     {
+        var parts = keyParams.Split('.');
+        if (parts.Length != 2) throw new ArgumentException("잘못된 RSA 키 파라미터 형식");
+
+        var parameters = new RSAParameters
+        {
+            Modulus  = Convert.FromBase64String(parts[0]),
+            Exponent = Convert.FromBase64String(parts[1])
+        };
+
         _serverRsa?.Dispose();
-        _serverRsa = RSA.Create();
-        _serverRsa.ImportRSAPublicKey(pubKeyBytes, out _);
+        _serverRsa = new RSACryptoServiceProvider();
+        ((RSACryptoServiceProvider)_serverRsa).ImportParameters(parameters);
     }
 
     public byte[] RsaEncryptWithServerKey(byte[] value)
     {
-        return _serverRsa.Encrypt(value, RSAEncryptionPadding.OaepSHA256);
+        // Unity/Mono의 RSACryptoServiceProvider는 OaepSHA256 미지원 → OaepSHA1 사용
+        return _serverRsa.Encrypt(value, RSAEncryptionPadding.OaepSHA1);
     }
 
     public byte[] RsaEncrypt(byte[] value)

@@ -17,11 +17,12 @@ namespace Network
 
         protected override void Init()
         {
+            _ = ProcessPacket();   // 메인 스레드에서 루프 시작
+
             _connector.Connect(
                 (socket) =>
                 {
                     _session = new ServerSession(socket);
-                    ProcessPacket();
                     return _session;
                 },
                 IPAddress.Loopback,
@@ -41,12 +42,15 @@ namespace Network
 
         private async Awaitable ProcessPacket()
         {
-            while (_session != null && _session.Disconnected == false)
+            while (true)
             {
-                while (_processingQueue.Count > 0)
+                if (_session != null && _session.Disconnected == false)
                 {
-                    var packet = _processingQueue.Dequeue();
-                    PacketManager.Instance.OnRecvPacket(_session, packet);
+                    while (_processingQueue.Count > 0)
+                    {
+                        var packet = _processingQueue.Dequeue();
+                        PacketManager.Instance.OnRecvPacket(_session, packet);
+                    }
                 }
 
                 await Awaitable.NextFrameAsync();

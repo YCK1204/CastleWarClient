@@ -6,13 +6,14 @@ using CWFramework;
 using Google.FlatBuffers;
 using K4os.Compression.LZ4;
 using Network;
+using UnityEngine;
 
 public class PacketManager : Singleton<PacketManager>
 {
     private Dictionary<ushort, Action<ServerSession, byte[]>> _packetHandlers =
         new Dictionary<ushort, Action<ServerSession, byte[]>>();
 
-    private const ushort PacketHeaderSize = PacketConstants.HeaderSize;
+    private readonly ushort PacketHeaderSize = 5;
     private const int CompressionThreshold = 512;
     private const byte FlagCompressed = 0x01;
 
@@ -62,7 +63,7 @@ public class PacketManager : Singleton<PacketManager>
         }
         catch (Exception ex)
         {
-            
+            Debug.LogError(ex);
         }
         finally
         {
