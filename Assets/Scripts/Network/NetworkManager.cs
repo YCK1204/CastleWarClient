@@ -12,7 +12,7 @@ namespace Network
     {
         private Connector _connector = new Connector();
         private ConcurrentQueue<ArraySegment<byte>> _queue = new ConcurrentQueue<ArraySegment<byte>>();
-        private ServerSession _session;
+        public ServerSession Session;
         private Queue<ArraySegment<byte>> _processingQueue = new Queue<ArraySegment<byte>>();
 
         protected override void Init()
@@ -22,8 +22,8 @@ namespace Network
             _connector.Connect(
                 (socket) =>
                 {
-                    _session = new ServerSession(socket);
-                    return _session;
+                    Session = new ServerSession(socket);
+                    return Session;
                 },
                 IPAddress.Loopback,
                 8080);
@@ -31,7 +31,7 @@ namespace Network
 
         public void Send(ArraySegment<byte> data)
         {
-            _session?.Send(data);
+            Session?.Send(data);
         }
 
         // 소켓 스레드에서 호출 → thread-safe
@@ -44,12 +44,12 @@ namespace Network
         {
             while (true)
             {
-                if (_session != null && _session.Disconnected == false)
+                if (Session != null && Session.Disconnected == false)
                 {
                     while (_processingQueue.Count > 0)
                     {
                         var packet = _processingQueue.Dequeue();
-                        PacketManager.Instance.OnRecvPacket(_session, packet);
+                        PacketManager.Instance.OnRecvPacket(Session, packet);
                     }
                 }
 

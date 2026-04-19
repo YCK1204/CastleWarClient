@@ -67,7 +67,7 @@ public class SecurityManager : Singleton<SecurityManager>
         return result;
     }
 
-    public byte[]? AesDecrypt(byte[] data, PacketSession session)
+    public byte[]? AesDecrypt(byte[] data, int count, PacketSession session)
     {
         if (!session.IsAesInit)
         {
@@ -84,7 +84,7 @@ public class SecurityManager : Singleton<SecurityManager>
         aes.IV = iv;
 
         using var decryptor = aes.CreateDecryptor();
-        return decryptor.TransformFinalBlock(data, 16, data.Length - 16);
+        return decryptor.TransformFinalBlock(data, 16, count - 16);
     }
     #endregion
 

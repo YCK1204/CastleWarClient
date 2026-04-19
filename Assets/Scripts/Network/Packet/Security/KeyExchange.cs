@@ -45,7 +45,7 @@ public partial class PacketHandler
         var ivOffset  = CS_AesKey.CreateIvVectorBlock(builder, (sbyte[])(Array)wrappedIv);
         var aesKeyOffset = CS_AesKey.CreateCS_AesKey(builder, ivOffset, keyOffset);
 
-        var sendPacket = PacketManager.Instance.CreatePacket(aesKeyOffset, builder, CW_PKT_Type.CS_AES_KEY);
+        var sendPacket = PacketManager.Instance.CreatePacket(aesKeyOffset, builder, CW_PKT_Security.CS_AES_KEY);
         if (sendPacket != null)
             NetworkManager.Instance.Send(sendPacket);
     }

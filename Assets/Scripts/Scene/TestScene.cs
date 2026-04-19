@@ -40,6 +40,9 @@ namespace Scene
             }
             
             Instantiate(networkManagerPrefab);
+            
+            Canvas canvas = ResourceManager.Instance.Get<Canvas>("Canvas");
+            var go = Instantiate(canvas);
         }
     }
 }

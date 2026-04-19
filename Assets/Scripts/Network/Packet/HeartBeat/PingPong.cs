@@ -9,7 +9,7 @@ public partial class PacketHandler
 
         var builder = new FlatBufferBuilder(64);
         var pongOffset = CW_CS_Pong.CreateCW_CS_Pong(builder, ping.Timestamp);
-        var packet = PacketManager.Instance.CreatePacket(pongOffset, builder, CW_PKT_Type.CS_PONG);
+        var packet = PacketManager.Instance.CreatePacket(pongOffset, builder, CW_PKT_HeartBeat.CS_PONG);
 
         if (packet != null)
             NetworkManager.Instance.Send(packet);
