@@ -7,7 +7,7 @@ namespace GameLogic.Input
     {
         private Action _touchDown;
         private Action _touchUp;
-        private Action<Vector2> _touchDrag;
+        private Action<UnityEngine.Vector2> _touchDrag;
 
         private void OnEnable()
         {
@@ -31,7 +31,7 @@ namespace GameLogic.Input
             set => _touchUp = value;
         }
 
-        Action<Vector2> ITouchable.OnTouchDrag
+        Action<UnityEngine.Vector2> ITouchable.OnTouchDrag
         {
             get => _touchDrag;
             set => _touchDrag = value;

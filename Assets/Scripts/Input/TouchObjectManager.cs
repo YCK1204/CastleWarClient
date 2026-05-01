@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using Core;
+using Vector2 = UnityEngine.Vector2;
+
 
 namespace GameLogic.Input
 {
@@ -41,12 +43,12 @@ namespace GameLogic.Input
             if (UnityEngine.Input.touchCount == 0) return;
 
             var touch = UnityEngine.Input.GetTouch(0);
-            var worldPos = Camera.main.ScreenToWorldPoint(touch.position);
+            UnityEngine.Vector2 worldPos = Camera.main.ScreenToWorldPoint(touch.position);
 
             switch (touch.phase)
             {
                 case TouchPhase.Began:
-                    var hit = Physics2D.Raycast(worldPos, Vector2.zero);
+                    var hit = Physics2D.Raycast(worldPos, UnityEngine.Vector2.zero);
                     if (hit.collider != null && hit.collider.TryGetComponent<ITouchable>(out var touchable))
                     {
                         _currentTouched = touchable;
@@ -68,11 +70,11 @@ namespace GameLogic.Input
 
         private void HandleMouseInput()
         {
-            var worldPos = (Vector2)Camera.main.ScreenToWorldPoint(UnityEngine.Input.mousePosition);
+            var worldPos = (UnityEngine.Vector2)Camera.main.ScreenToWorldPoint(UnityEngine.Input.mousePosition);
 
             if (UnityEngine.Input.GetMouseButtonDown(0))
             {
-                var hit = Physics2D.Raycast(worldPos, Vector2.zero);
+                var hit = Physics2D.Raycast(worldPos, UnityEngine.Vector2.zero);
                 if (hit.collider != null && hit.collider.TryGetComponent<ITouchable>(out var touchable))
                 {
                     _currentTouched = touchable;

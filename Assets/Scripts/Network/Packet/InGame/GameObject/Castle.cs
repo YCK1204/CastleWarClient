@@ -9,7 +9,7 @@ public partial class PacketHandler
     public static void SC_CASTLE_UPDATEHandler(PacketSession session, byte[] buffer)
     {
     }
-    public static void SC_CASTLE_UPGRADEHandler(PacketSession session, byte[] buffer)
+    public static void SC_CASTLE_UPGRADEDHandler(PacketSession session, byte[] buffer)
     {
     }
 }

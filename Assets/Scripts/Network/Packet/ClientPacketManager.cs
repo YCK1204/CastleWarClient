@@ -24,15 +24,16 @@ public class PacketManager : Singleton<PacketManager>
         _packetHandlers.Add((ushort)CW_PKT_HeartBeat.SC_PING, PacketHandler.SC_PINGHandler);
         _packetHandlers.Add((ushort)CW_PKT_PreGame.SC_GAME_START, PacketHandler.SC_GAME_STARTHandler);
         _packetHandlers.Add((ushort)CW_PKT_InGame.SC_UNIT_SPAWNED, PacketHandler.SC_UNIT_SPAWNEDHandler);
-        _packetHandlers.Add((ushort)CW_PKT_InGame.SC_LAST_CASTLE_SWITCHED, PacketHandler.SC_LAST_CASTLE_SWITCHEDHandler);
         _packetHandlers.Add((ushort)CW_PKT_InGame.SC_UNIT_POSITION, PacketHandler.SC_UNIT_POSITIONHandler);
         _packetHandlers.Add((ushort)CW_PKT_InGame.SC_UNIT_ATTACK, PacketHandler.SC_UNIT_ATTACKHandler);
+        _packetHandlers.Add((ushort)CW_PKT_InGame.SC_LAST_CASTLE_SWITCHED, PacketHandler.SC_LAST_CASTLE_SWITCHEDHandler);
         _packetHandlers.Add((ushort)CW_PKT_InGame.SC_CASTLE_ACATIVATED, PacketHandler.SC_CASTLE_ACATIVATEDHandler);
         _packetHandlers.Add((ushort)CW_PKT_InGame.SC_CASTLE_UPDATE, PacketHandler.SC_CASTLE_UPDATEHandler);
-        _packetHandlers.Add((ushort)CW_PKT_InGame.SC_CASTLE_UPGRADE, PacketHandler.SC_CASTLE_UPGRADEHandler);
-        _packetHandlers.Add((ushort)CW_PKT_GameInfo.SC_DRAW_REQUEST, PacketHandler.SC_DRAW_REQUESTHandler);
-        _packetHandlers.Add((ushort)CW_PKT_GameInfo.SC_DRAW_REQUEST_REJECTION, PacketHandler.SC_DRAW_REQUEST_REJECTIONHandler);
-        _packetHandlers.Add((ushort)CW_PKT_GameInfo.SC_GAME_RESULT, PacketHandler.SC_GAME_RESULTHandler);
+        _packetHandlers.Add((ushort)CW_PKT_InGame.SC_CASTLE_UPGRADED, PacketHandler.SC_CASTLE_UPGRADEDHandler);
+        _packetHandlers.Add((ushort)CW_PKT_InGame.SC_SKILL_USED, PacketHandler.SC_SKILL_USEDHandler);
+        _packetHandlers.Add((ushort)CW_PKT_GameResult.SC_DRAW_REQUEST, PacketHandler.SC_DRAW_REQUESTHandler);
+        _packetHandlers.Add((ushort)CW_PKT_GameResult.SC_DRAW_REQUEST_REJECTION, PacketHandler.SC_DRAW_REQUEST_REJECTIONHandler);
+        _packetHandlers.Add((ushort)CW_PKT_GameResult.SC_GAME_RESULT, PacketHandler.SC_GAME_RESULTHandler);
         _packetHandlers.Add((ushort)CW_PKT_Security.SC_RSA_PUB_KEY, PacketHandler.SC_RSA_PUB_KEYHandler);
         _packetHandlers.Add((ushort)CW_PKT_Auth.SC_LOGIN, PacketHandler.SC_LOGINHandler);
     }
