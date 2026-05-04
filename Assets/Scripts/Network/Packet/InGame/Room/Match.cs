@@ -2,7 +2,7 @@ using UnityEngine;
 
 public partial class PacketHandler
 {
-    public static void SC_GAME_STARTHandler(PacketSession session, byte[] buffer)
+    public static void SC_GAME_STARTHandler(PacketSession session, SC_GameStart data)
     {
         Debug.Log("Game Start!!");
     }
@@ -15,7 +15,7 @@ public partial class PacketHandler
         
     }
     
-    public static void SC_GAME_RESULTHandler(PacketSession session, byte[] buffer)
+    public static void SC_GAME_RESULTHandler(PacketSession session, SC_GameResult data)
     {
         
     }

@@ -21,21 +21,34 @@ public class PacketManager : Singleton<PacketManager>
     public PacketManager()
     {
         
-        _packetHandlers.Add((ushort)CW_PKT_HeartBeat.SC_PING, PacketHandler.SC_PINGHandler);
-        _packetHandlers.Add((ushort)CW_PKT_PreGame.SC_GAME_START, PacketHandler.SC_GAME_STARTHandler);
-        _packetHandlers.Add((ushort)CW_PKT_InGame.SC_UNIT_SPAWNED, PacketHandler.SC_UNIT_SPAWNEDHandler);
-        _packetHandlers.Add((ushort)CW_PKT_InGame.SC_UNIT_POSITION, PacketHandler.SC_UNIT_POSITIONHandler);
-        _packetHandlers.Add((ushort)CW_PKT_InGame.SC_UNIT_ATTACK, PacketHandler.SC_UNIT_ATTACKHandler);
-        _packetHandlers.Add((ushort)CW_PKT_InGame.SC_LAST_CASTLE_SWITCHED, PacketHandler.SC_LAST_CASTLE_SWITCHEDHandler);
-        _packetHandlers.Add((ushort)CW_PKT_InGame.SC_CASTLE_ACATIVATED, PacketHandler.SC_CASTLE_ACATIVATEDHandler);
-        _packetHandlers.Add((ushort)CW_PKT_InGame.SC_CASTLE_UPDATE, PacketHandler.SC_CASTLE_UPDATEHandler);
-        _packetHandlers.Add((ushort)CW_PKT_InGame.SC_CASTLE_UPGRADED, PacketHandler.SC_CASTLE_UPGRADEDHandler);
-        _packetHandlers.Add((ushort)CW_PKT_InGame.SC_SKILL_USED, PacketHandler.SC_SKILL_USEDHandler);
-        _packetHandlers.Add((ushort)CW_PKT_GameResult.SC_DRAW_REQUEST, PacketHandler.SC_DRAW_REQUESTHandler);
-        _packetHandlers.Add((ushort)CW_PKT_GameResult.SC_DRAW_REQUEST_REJECTION, PacketHandler.SC_DRAW_REQUEST_REJECTIONHandler);
-        _packetHandlers.Add((ushort)CW_PKT_GameResult.SC_GAME_RESULT, PacketHandler.SC_GAME_RESULTHandler);
-        _packetHandlers.Add((ushort)CW_PKT_Security.SC_RSA_PUB_KEY, PacketHandler.SC_RSA_PUB_KEYHandler);
-        _packetHandlers.Add((ushort)CW_PKT_Auth.SC_LOGIN, PacketHandler.SC_LOGINHandler);
+        Register<SC_Ping>((ushort)CW_PKT_HeartBeat.SC_PING, SC_Ping.GetRootAsSC_Ping, PacketHandler.SC_PINGHandler);
+        Register<SC_GameStart>((ushort)CW_PKT_PreGame.SC_GAME_START, SC_GameStart.GetRootAsSC_GameStart, PacketHandler.SC_GAME_STARTHandler);
+        Register<SC_UnitSpawned>((ushort)CW_PKT_InGame.SC_UNIT_SPAWNED, SC_UnitSpawned.GetRootAsSC_UnitSpawned, PacketHandler.SC_UNIT_SPAWNEDHandler);
+        Register<SC_UnitPosition>((ushort)CW_PKT_InGame.SC_UNIT_POSITION, SC_UnitPosition.GetRootAsSC_UnitPosition, PacketHandler.SC_UNIT_POSITIONHandler);
+        Register<SC_UnitAttack>((ushort)CW_PKT_InGame.SC_UNIT_ATTACK, SC_UnitAttack.GetRootAsSC_UnitAttack, PacketHandler.SC_UNIT_ATTACKHandler);
+        Register<SC_UnitDied>((ushort)CW_PKT_InGame.SC_UNIT_DIED, SC_UnitDied.GetRootAsSC_UnitDied, PacketHandler.SC_UNIT_DIEDHandler);
+        Register<SC_LastCastleSwitched>((ushort)CW_PKT_InGame.SC_LAST_CASTLE_SWITCHED, SC_LastCastleSwitched.GetRootAsSC_LastCastleSwitched, PacketHandler.SC_LAST_CASTLE_SWITCHEDHandler);
+        Register<SC_CastleActivated>((ushort)CW_PKT_InGame.SC_CASTLE_ACTIVATED, SC_CastleActivated.GetRootAsSC_CastleActivated, PacketHandler.SC_CASTLE_ACTIVATEDHandler);
+        Register<SC_CastleUpdate>((ushort)CW_PKT_InGame.SC_CASTLE_UPDATE, SC_CastleUpdate.GetRootAsSC_CastleUpdate, PacketHandler.SC_CASTLE_UPDATEHandler);
+        Register<SC_CastleUpgraded>((ushort)CW_PKT_InGame.SC_CASTLE_UPGRADED, SC_CastleUpgraded.GetRootAsSC_CastleUpgraded, PacketHandler.SC_CASTLE_UPGRADEDHandler);
+        Register<SC_CastleDeactivated>((ushort)CW_PKT_InGame.SC_CASTLE_DEACTIVATED, SC_CastleDeactivated.GetRootAsSC_CastleDeactivated, PacketHandler.SC_CASTLE_DEACTIVATEDHandler);
+        Register<SC_SkillUsed>((ushort)CW_PKT_InGame.SC_SKILL_USED, SC_SkillUsed.GetRootAsSC_SkillUsed, PacketHandler.SC_SKILL_USEDHandler);
+        Register<SC_DrawOffered>((ushort)CW_PKT_GameResult.SC_DRAW_OFFERED, SC_DrawOffered.GetRootAsSC_DrawOffered, PacketHandler.SC_DRAW_OFFEREDHandler);
+        Register<SC_DrawRejected>((ushort)CW_PKT_GameResult.SC_DRAW_REJECTED, SC_DrawRejected.GetRootAsSC_DrawRejected, PacketHandler.SC_DRAW_REJECTEDHandler);
+        Register<SC_GameResult>((ushort)CW_PKT_GameResult.SC_GAME_RESULT, SC_GameResult.GetRootAsSC_GameResult, PacketHandler.SC_GAME_RESULTHandler);
+        Register<SC_RsaPubKey>((ushort)CW_PKT_Security.SC_RSA_PUB_KEY, SC_RsaPubKey.GetRootAsSC_RsaPubKey, PacketHandler.SC_RSA_PUB_KEYHandler);
+        Register<SC_Login>((ushort)CW_PKT_Auth.SC_LOGIN, SC_Login.GetRootAsSC_Login, PacketHandler.SC_LOGINHandler);
+    }
+
+    /// <summary>FlatBuffers 역직렬화를 핸들러 호출 전에 수행하는 래퍼를 등록합니다.</summary>
+    private void Register<T>(ushort id, Func<ByteBuffer, T> deserializer, Action<ServerSession, T> handler)
+        where T : struct, IFlatbufferObject
+    {
+        _packetHandlers[id] = (session, buffer) =>
+        {
+            var packet = deserializer(new ByteBuffer(buffer));
+            handler(session, packet);
+        };
     }
 
     public void OnRecvPacket(ServerSession session, ArraySegment<byte> data)

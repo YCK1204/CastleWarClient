@@ -1,17 +1,22 @@
+using System;
 using Google.FlatBuffers;
 using Network;
 
 public partial class PacketHandler
 {
-    public static void SC_PINGHandler(PacketSession session, byte[] buffer)
+    public static void SC_PINGHandler(PacketSession session, SC_Ping data)
     {
-        var ping = CW_SC_Ping.GetRootAsCW_SC_Ping(new ByteBuffer(buffer));
+        try
+        {
+            var builder = new FlatBufferBuilder(64);
+            var pongOffset = CS_Pong.CreateCS_Pong(builder, data.Timestamp);
+            var packet = PacketManager.Instance.CreatePacket(pongOffset, builder, CW_PKT_HeartBeat.CS_PONG);
 
-        var builder = new FlatBufferBuilder(64);
-        var pongOffset = CW_CS_Pong.CreateCW_CS_Pong(builder, ping.Timestamp);
-        var packet = PacketManager.Instance.CreatePacket(pongOffset, builder, CW_PKT_HeartBeat.CS_PONG);
-
-        if (packet != null)
-            NetworkManager.Instance.Send(packet);
+            if (packet != null)
+                NetworkManager.Instance.Send(packet);
+        }
+        catch (Exception e)
+        {
+        }
     }
 }
