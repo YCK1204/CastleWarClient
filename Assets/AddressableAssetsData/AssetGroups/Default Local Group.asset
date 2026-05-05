@@ -29,6 +29,12 @@ MonoBehaviour:
     - TestScene
     - UI
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c1cd3d15fa85dae429ffa61493fc66f8
+    m_Address: Assets/AddressableResources/Imgs/Castles.png
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - TestScene
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 57f2b4fb36156954083b10f2523fcce9, type: 2}
   m_SchemaSet:
