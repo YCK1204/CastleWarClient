@@ -1,0 +1,17 @@
+{
+  "castles": [
+    { "id": 1, "x": -5.5, "y": -2.5, "defaultTeam":  0 },
+    { "id": 2, "x":  6.0, "y":  3.0, "defaultTeam":  1 },
+    { "id": 3, "x": -5.5, "y":  3.0, "defaultTeam": -1 },
+    { "id": 4, "x":  0.0, "y":  0.0, "defaultTeam": -1 },
+    { "id": 5, "x":  6.0, "y": -2.5, "defaultTeam": -1 }
+  ],
+  "paths": [
+    { "id": 1, "castleAId": 1, "castleBId": 4 },
+    { "id": 2, "castleAId": 4, "castleBId": 2 },
+    { "id": 3, "castleAId": 3, "castleBId": 2 },
+    { "id": 4, "castleAId": 1, "castleBId": 3 },
+    { "id": 5, "castleAId": 1, "castleBId": 5 },
+    { "id": 6, "castleAId": 5, "castleBId": 2 }
+  ]
+}
