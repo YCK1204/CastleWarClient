@@ -6,7 +6,8 @@ namespace Scene
 {
     public enum SceneType
     {
-        TestScene
+        TestScene,
+        GameScene
     }
 
     public class BaseScene : MonoBehaviour

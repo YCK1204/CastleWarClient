@@ -114,12 +114,12 @@ namespace Core
             return null;
         }
 
-        public static float DistanceTo(this UnityEngine.Vector2 vector, UnityEngine.Vector2 vector2)
+        public static float DistanceTo(this Vector2 vector, Vector2 vector2)
         {
-            return UnityEngine.Vector2.Distance(vector, vector2);
+            return Vector2.Distance(vector, vector2);
         }
 
-        public static UnityEngine.Vector2 DirectionTo(this UnityEngine.Vector2 vector, UnityEngine.Vector2 vector2)
+        public static Vector2 DirectionTo(this Vector2 vector, Vector2 vector2)
         {
             return vector2 - vector;
         }

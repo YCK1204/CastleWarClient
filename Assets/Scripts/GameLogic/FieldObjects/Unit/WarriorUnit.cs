@@ -1,4 +1,6 @@
 using GameLogic.Interfaces;
+using GameLogic.Map;
+using UnityEngine;
 
 namespace GameLogic.Unit
 {
@@ -13,10 +15,11 @@ namespace GameLogic.Unit
 
         public override void Move()
         {
-            // PathId + Progress 기반 이동 처리 (MapManager에서 경로 좌표 조회)
+            var worldPos = MapManager.Instance.GetWorldPosition(PathId, Progress);
+            transform.position = new Vector3(worldPos.x, worldPos.y, 0f);
         }
 
-        public void Attack(GameLogic.FieldObjects.FieldObject target)
+        public void Attack(FieldObjects.FieldObject target)
         {
             if (target != null && !target.IsDead)
                 target.TakeDamage(AttackPower);

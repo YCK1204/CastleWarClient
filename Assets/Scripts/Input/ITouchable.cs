@@ -7,7 +7,7 @@ namespace GameLogic.Input
     {
         internal Action OnTouchDown { get; set; }
         internal Action OnTouchUp { get; set; }
-        internal Action<UnityEngine.Vector2> OnTouchDrag { get; set; }
+        internal Action<Vector2> OnTouchDrag { get; set; }
 
         public void AddOnTouchDown(Action action)
         {
@@ -19,7 +19,7 @@ namespace GameLogic.Input
             OnTouchUp += action;
         }
 
-        public void AddOnTouchDrag(Action<UnityEngine.Vector2> action)
+        public void AddOnTouchDrag(Action<Vector2> action)
         {
             OnTouchDrag += action;
         }
@@ -34,7 +34,7 @@ namespace GameLogic.Input
             OnTouchUp = action;
         }
 
-        public void SetOnTouchDrag(Action<UnityEngine.Vector2> action)
+        public void SetOnTouchDrag(Action<Vector2> action)
         {
             OnTouchDrag = action;
         }

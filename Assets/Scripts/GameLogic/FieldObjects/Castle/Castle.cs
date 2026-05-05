@@ -1,6 +1,8 @@
 ﻿using System;
 using GameLogic.Input;
 using GameLogic.Interfaces;
+using Google.FlatBuffers;
+using Network;
 using UnityEngine;
 
 namespace GameLogic.FieldObjects
@@ -9,17 +11,29 @@ namespace GameLogic.FieldObjects
     {
         private Action _touchDown;
         private Action _touchUp;
-        private Action<UnityEngine.Vector2> _touchDrag;
+        private Action<Vector2> _touchDrag;
+
+        // 소환할 유닛 타입 ID (Inspector에서 설정)
+        [SerializeField] private ushort _unitTypeId = 0;
+        // 소환할 유닛 수 (코스트 = count * RequiredCost)
+        [SerializeField] private ushort _spawnCount = 1;
+
         #region TouchHandle
-        private void OnEnable()
+        private void Awake()
+        {
+            ((ITouchable)this).OnTouchDown = OnTouched;
+        }
+
+        private void Start()
         {
             TouchObjectManager.Instance.RegisterTouchObject(this);
         }
 
         private void OnDisable()
         {
-            TouchObjectManager.Instance.UnregisterTouchObject(this);
+            TouchObjectManager.Instance?.UnregisterTouchObject(this);
         }
+
         Action ITouchable.OnTouchDown
         {
             get => _touchDown;
@@ -32,7 +46,7 @@ namespace GameLogic.FieldObjects
             set => _touchUp = value;
         }
 
-        Action<UnityEngine.Vector2> ITouchable.OnTouchDrag
+        Action<Vector2> ITouchable.OnTouchDrag
         {
             get => _touchDrag;
             set => _touchDrag = value;
@@ -47,6 +61,31 @@ namespace GameLogic.FieldObjects
         public override void TakeDamage(float damage)
         {
             Hp -= damage;
+        }
+
+        private void OnTouched()
+        {
+            Debug.Log("[Castle] 터치됨");
+            SendUnitSpawn(_unitTypeId, _spawnCount);
+        }
+
+        public void SendUnitSpawn(ushort unitTypeId, ushort count)
+        {
+            var session = NetworkManager.Instance.Session;
+            Debug.Log($"[Castle] SendUnitSpawn - Session: {(session == null ? "null" : "있음")}, AesInit: {session?.IsAesInit}");
+
+            var builder = new FlatBufferBuilder(64);
+            var wayPoints = CS_UnitSpawn.CreateWayPointsVector(builder, Array.Empty<ushort>());
+            var offset = CS_UnitSpawn.CreateCS_UnitSpawn(builder,
+                unit_id: unitTypeId,
+                count: count,
+                way_pointsOffset: wayPoints,
+                start_point: NetworkId);
+
+            var packet = PacketManager.Instance.CreatePacketWithAes(offset, builder, CW_PKT_InGame.CS_UNIT_SPAWN);
+            Debug.Log($"[Castle] 패킷: {(packet != null ? packet.Length + " bytes" : "null")}");
+            if (packet != null)
+                NetworkManager.Instance.Send(packet);
         }
     }
 }
