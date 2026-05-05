@@ -1,0 +1,13 @@
+{
+  "castles": [
+    {"id": 0, "x": -6.0, "y": 0.0},
+    {"id": 1, "x": -2.0, "y": 2.0},
+    {"id": 2, "x":  2.0, "y": 2.0},
+    {"id": 3, "x":  6.0, "y": 0.0}
+  ],
+  "paths": [
+    {"id": 0, "fromCastleId": 0, "toCastleId": 1},
+    {"id": 1, "fromCastleId": 1, "toCastleId": 2},
+    {"id": 2, "fromCastleId": 2, "toCastleId": 3}
+  ]
+}

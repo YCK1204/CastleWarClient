@@ -19,12 +19,14 @@ MonoBehaviour:
     m_Address: '@EventSystem'
     m_ReadOnly: 0
     m_SerializedLabels:
+    - GameScene
     - TestScene
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 9d89e1f62f4391f4aa88aea1be5e08f1
     m_Address: '@NetworkManager'
     m_ReadOnly: 0
     m_SerializedLabels:
+    - GameScene
     - TestScene
     FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0

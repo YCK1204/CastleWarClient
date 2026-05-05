@@ -29,6 +29,16 @@ MonoBehaviour:
     - TestScene
     - UI
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 85dc0989cce7ce6488796f6169a62ad7
+    m_Address: Assets/Scenes/GameScene.unity
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8aa3f755ba6311749a8fb722cffd5dfb
+    m_Address: Assets/Prefabs/Units/WarriorUnit.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 57f2b4fb36156954083b10f2523fcce9, type: 2}
   m_SchemaSet:
